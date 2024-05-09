@@ -1,0 +1,108 @@
+version: '3'
+services:
+  webapp1:
+    build: ./ui-service
+    container_name: ui-service
+    depends_on:
+      - mitmproxy
+      - oap-server
+    ports:
+      - "5000:5000"
+    environment:
+      - "http_proxy=http://mitmproxy:8080"
+      - SW_AGENT_COLLECTOR_BACKEND_SERVICES=oap-server:11800
+    networks:
+      - mynetwork
+
+  webapp2:
+    build: ./user-service
+    container_name: user-service
+    depends_on:
+      - mitmproxy
+      - oap-server
+    ports:
+      - "5001:5001"
+    environment:
+      - "http_proxy=http://mitmproxy:8080"
+      - SW_AGENT_COLLECTOR_BACKEND_SERVICES=oap-server:11800
+    networks:
+      - mynetwork
+
+  db:
+    image: mysql:5.7
+    container_name: MySQL
+    environment:
+      MYSQL_ROOT_PASSWORD: 123
+      MYSQL_DATABASE: deathstar
+    volumes:
+      - ./db-init:/docker-entrypoint-initdb.d
+    networks:
+      - mynetwork
+
+  mitmproxy:
+    image: mitmproxy/mitmproxy
+    container_name: mitmproxy
+    ports:
+      - "8080:8080"
+    command: mitmdump -w /home/mitmproxy/dumpfile.txt -s /home/record_filter_oap.py
+    # command: mitmdump -p 8080 -s /home/har_dump.py
+    # command: mitmdump --set hardump=dump.har
+    
+    volumes:
+      # - ./addons/har_dump.py:/home/har_dump.py
+      - ./addons/record_filter_oap.py:/home/record_filter_oap.py
+      - ./mitmproxy:/home/mitmproxy
+      # - ./output:/home/mitmproxy/output
+    networks:
+      - mynetwork
+
+  oap-server:
+    image: apache/skywalking-oap-server:9.2.0
+    container_name: skywalking-oap
+    # restart: always
+    # environment:
+    #   - SW_STORAGE=elasticsearch
+    #   - SW_STORAGE_ES_CLUSTER_NODES=<elasticsearch-host>:9200
+    #   - TZ=Asia/Shanghai
+    ports:
+      - "11800:11800" # gRPC 端口
+      - "12800:12800" # HTTP 端口
+    networks:
+      - mynetwork
+
+  oap-ui:
+    image: apache/skywalking-ui:9.2.0
+    container_name: skywalking-ui
+    depends_on:
+      - oap-server
+    # restart: always
+    environment:
+      - SW_OAP_ADDRESS=http://oap-server:12800
+      # - TZ=Asia/Shanghai
+    ports:
+      - "8890:8080"
+    networks:
+      - mynetwork
+
+  #   # Elasticsearch
+  # skywalking-elasticsearch:
+  #   image: elasticsearch:7.16.3
+  #   container_name: skywalking-elasticsearch
+  #   ports:
+  #     - "19200:9200"
+  #     - "19300:9300"
+  #   environment:
+  #     - discovery.type=single-node
+  #     - TZ=Asia/Shanghai
+  #   ulimits:
+  #     memlock:
+  #       soft: -1
+  #       hard: -1
+  #     nofile:
+  #       soft: 65536
+  #       hard: 65536
+  #     mem_limit: 2g
+
+networks:
+  mynetwork:
+    driver: bridge
