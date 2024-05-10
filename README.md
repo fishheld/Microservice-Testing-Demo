@@ -36,7 +36,7 @@ docker-compose up --build -d
 ## View data
 
 + The SkyWalking traces : `localhost:8890`
-  ![屏幕截图 2024-05-09 185529](./assets/屏幕截图 2024-05-09 185529.png)
+  ![185529](./assets/185529.png)
 
 + The MitmProxy flows : In the directory that build docker compose.
 
