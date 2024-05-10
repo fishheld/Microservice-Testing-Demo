@@ -2,6 +2,8 @@
 
 ## Architecture
 
+![Architecture](./assets/Architecture-1715309850432-2.png)
+
 ### Flask
 
 + ui-service : 
